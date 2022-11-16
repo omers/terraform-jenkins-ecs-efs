@@ -6,6 +6,7 @@ resource "aws_alb" "application_load_balancer" {
   load_balancer_type = "application"
   subnets            = aws_subnet.public.*.id
   security_groups    = [aws_security_group.load_balancer_security_group.id]
+  drop_invalid_header_fields = true
 
   tags = {
     Name        = "${var.app_name}-alb"
@@ -15,12 +16,13 @@ resource "aws_alb" "application_load_balancer" {
 
 resource "aws_security_group" "load_balancer_security_group" {
   vpc_id = aws_vpc.aws-vpc.id
-
+  description = "Load balancer public access security group"
   ingress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = [var.source_ip]
+    description = "HTTPS Access Rule"
   }
 
   ingress {
@@ -28,6 +30,8 @@ resource "aws_security_group" "load_balancer_security_group" {
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = [var.source_ip]
+    description = "HTTP Access Rule"
+
   }
 
   egress {
@@ -35,6 +39,7 @@ resource "aws_security_group" "load_balancer_security_group" {
     to_port          = 0
     protocol         = "-1"
     cidr_blocks      = ["0.0.0.0/0"]
+    description = "Outgoing traffic"
   }
   tags = {
     Name        = "${var.app_name}-sg"
@@ -91,7 +96,7 @@ resource "aws_lb_listener" "listener-https" {
   port              = "443"
   protocol          = "HTTPS"
 
-  ssl_policy      = "ELBSecurityPolicy-2016-08"
+  ssl_policy      = "ELBSecurityPolicy-TLS-1-2-2017-01"
   certificate_arn = var.cert_arn
 
   default_action {
